@@ -535,6 +535,8 @@ this.createjs = this.createjs || {};
 			case createjs.LoadQueue.JSON:
 				var json = {};
 				try {
+					if(JSON.minify)
+						this._response = JSON.minify(this._response);
 					json = JSON.parse(this._response);
 				} catch (error) {
 					json = error;

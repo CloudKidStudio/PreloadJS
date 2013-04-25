@@ -6,7 +6,8 @@
             "/../src/preloadjs/AbstractLoader.js",
             "/../src/preloadjs/LoadQueue.js",
             "/../src/preloadjs/TagLoader.js",
-            "/../src/preloadjs/XHRLoader.js"
+            "/../src/preloadjs/XHRLoader.js",
+			"/../src/preloadjs/minify.json.js"
         ],
 		"JS_FILE_NAME" : "preloadjs-%VERSION%.min.js",
 		"PROJECT_NAME" : "PreloadJS",
