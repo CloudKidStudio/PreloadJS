@@ -535,7 +535,7 @@ this.createjs = this.createjs || {};
 			case createjs.LoadQueue.JSON:
 				var json = {};
 				try {
-					if(JSON.minify && !(this._item.data && this._item.data.doNotMinify))
+					if(JSON.minify && (this._item.data && this._item.data.minify))
 					{
 						this._response = JSON.minify(this._response);
 					}
