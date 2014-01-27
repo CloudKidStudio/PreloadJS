@@ -1026,6 +1026,11 @@ TODO: WINDOWS ISSUES
 		var match = this._parseURI(item.src);
 		if (match != null) { item.ext = match[5]; }
 		if (item.type == null) {
+			if(!item.ext)
+			{
+				console.error("unable to get extension for " + item.src);
+				console.error("RegEx results: " + match);
+			}
 			item.type = this._getTypeByExtension(item.ext);
 		}
 
