@@ -1,0 +1,16 @@
+{
+    "name": "PreloadJS",
+    "version": "0.3.2",
+    "main": "lib/preloadjs-0.3.2.min.js",
+    "ignore": [
+        "README.md",
+        "README_CREATEJS_NAMESPACE.txt",
+        "VERSIONS.txt",
+        "tools",
+        "src",
+        "examples",
+        "docs",
+        "build",
+        "lib/README.txt"
+    ]
+}
