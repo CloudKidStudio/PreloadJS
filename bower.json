@@ -1,5 +1,5 @@
 {
-    "name": "PreloadJS",
+    "name": "preloadjs",
     "version": "0.3.2",
     "main": "lib/preloadjs-0.3.2.min.js",
     "ignore": [
