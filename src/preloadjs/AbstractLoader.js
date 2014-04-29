@@ -35,30 +35,48 @@
 this.createjs = this.createjs||{};
 
 (function() {
-
+	"use strict";
 	/**
 	 * The base loader, which defines all the generic callbacks and events. All loaders extend this class, including the
 	 * {{#crossLink "LoadQueue"}}{{/crossLink}}.
 	 * @class AbstractLoader
-	 * @uses EventDispatcher
+	 * @extends EventDispatcher
 	 */
 	var AbstractLoader = function () {
 		this.init();
 	};
 
-	AbstractLoader.prototype = {};
+	AbstractLoader.prototype = new createjs.EventDispatcher(); //TODO: TEST!
 	var p = AbstractLoader.prototype;
 	var s = AbstractLoader;
 
 	/**
-	 * The RegExp pattern to use to parse file URIs. This supports simple file names, as well as full domain URIs with
-	 * query strings. The resulting match is: protocol:$1 domain:$2 path:$3 file:$4 extension:$5 query:$6.
-	 * @property FILE_PATTERN
-	 * @type {RegExp}
+	 * The Regular Expression used to test file URLS for an absolute path.
+	 * @property ABSOLUTE_PATH
 	 * @static
-	 * @protected
+	 * @type {RegExp}
+	 * @since 0.4.2
 	 */
-	s.FILE_PATTERN = /^(?:(\w+:)\/{2}(\w+(?:\.\w+)*\/?))?([/.]*?(?:[^?]+)?\/)?((?:[^/?]+)\.(\w+))(?:\?(\S+)?)?$/;
+	s.ABSOLUTE_PATT = /^(?:\w+:)?\/{2}/i;
+
+	/**
+	 * The Regular Expression used to test file URLS for an absolute path.
+	 * @property RELATIVE_PATH
+	 * @static
+	 * @type {RegExp}
+	 * @since 0.4.2
+	 */
+	s.RELATIVE_PATT = (/^[./]*?\//i);
+
+	/**
+	 * The Regular Expression used to test file URLS for an extension. Note that URIs must already have the query string
+	 * removed.
+	 * @property EXTENSION_PATT
+	 * @static
+	 * @type {RegExp}
+	 * @since 0.4.2
+	 */
+	s.EXTENSION_PATT = /\/?[^/]+\.(\w{1,5})$/i;
 
 	/**
 	 * If the loader has completed loading. This provides a quick check, but also ensures that the different approaches
@@ -72,7 +90,7 @@ this.createjs = this.createjs||{};
 	/**
 	 * Determine if the loader was canceled. Canceled loads will not fire complete events. Note that
 	 * {{#crossLink "LoadQueue"}}{{/crossLink}} queues should be closed using {{#crossLink "AbstractLoader/close"}}{{/crossLink}}
-	 * instead of canceled.
+	 * instead of setting this property.
 	 * @property canceled
 	 * @type {Boolean}
 	 * @default false
@@ -81,6 +99,15 @@ this.createjs = this.createjs||{};
 
 	/**
 	 * The current load progress (percentage) for this item. This will be a number between 0 and 1.
+	 *
+	 * <h4>Example</h4>
+	 *
+	 *     var queue = new createjs.LoadQueue();
+	 *     queue.loadFile("largeImage.png");
+	 *     queue.on("progress", function() {
+	 *         console.log("Progress:", queue.progress, event.progress);
+	 *     });
+	 *
 	 * @property progress
 	 * @type {Number}
 	 * @default 0
@@ -96,15 +123,6 @@ this.createjs = this.createjs||{};
 	 */
 	p._item = null;
 
-	/**
-	 * A path that will be prepended on to the item's source parameter before it is loaded.
-	 * @property _basePath
-	 * @type {String}
-	 * @private
-	 * @since 0.3.1
-	 */
-	p._basePath = null;
-
 // Events
 	/**
 	 * The event that is fired when the overall progress changes.
@@ -114,18 +132,10 @@ this.createjs = this.createjs||{};
 	 * @param {Number} loaded The amount that has been loaded so far. Note that this is may just be a percentage of 1,
 	 * since file sizes can not be determined before a load is kicked off, if at all.
 	 * @param {Number} total The total number of bytes. Note that this may just be 1.
-	 * @param {Number} progress The percentage that has been loaded. This will be a number between 0 and 1.
+	 * @param {Number} progress The ratio that has been loaded between 0 and 1.
 	 * @since 0.3.0
 	 */
 
-	/**
-	 * The event that is fired when a load starts. This event has been deprecated in favour of the "loadstart" event.
-	 * @event loadStart
-	 * @param {Object} target The object that dispatched the event.
-	 * @param {String} type The event type.
-	 * @since 0.3.0
-	 * @deprecated in favour of the "loadstart" event.
-	 */
 	/**
 	 * The event that is fired when a load starts.
 	 * @event loadstart
@@ -151,55 +161,40 @@ this.createjs = this.createjs||{};
 	 * @param {String} type The event type.
 	 * @param {Object} [item] The item that was being loaded that caused the error. The item was specified in
 	 * the {{#crossLink "LoadQueue/loadFile"}}{{/crossLink}} or {{#crossLink "LoadQueue/loadManifest"}}{{/crossLink}}
-	 * call. If only a string path or tag was specified, the object will contain that value as a property.
+	 * call. If only a string path or tag was specified, the object will contain that value as a `src` property.
 	 * @param {String} [error] The error object or text.
 	 * @since 0.3.0
 	 */
 
-// Callbacks (deprecated)
+	//TODO: Deprecated
 	/**
-	 * The callback that is fired when the overall progress changes.
+	 * REMOVED. Use {{#crossLink "EventDispatcher/addEventListener"}}{{/crossLink}} and the {{#crossLink "AbstractLoader/progress:event"}}{{/crossLink}}
+	 * event.
 	 * @property onProgress
 	 * @type {Function}
-	 * @deprecated In favour of the "progress" event. Will be removed in a future version.
+	 * @deprecated Use addEventListener and the "progress" event.
 	 */
-	p.onProgress = null;
-
 	/**
-	 * The callback that is fired when a load starts.
+	 * REMOVED. Use {{#crossLink "EventDispatcher/addEventListener"}}{{/crossLink}} and the {{#crossLink "AbstractLoader/loadstart:event"}}{{/crossLink}}
+	 * event.
 	 * @property onLoadStart
 	 * @type {Function}
-	 * @deprecated In favour of the "loadStart" event. Will be removed in a future version.
+	 * @deprecated Use addEventListener and the "loadstart" event.
 	 */
-	p.onLoadStart = null;
-
 	/**
-	 * The callback that is fired when the loader's content has been entirely loaded.
+	 * REMOVED. Use {{#crossLink "EventDispatcher/addEventListener"}}{{/crossLink}} and the {{#crossLink "AbstractLoader/complete:event"}}{{/crossLink}}
+	 * event.
 	 * @property onComplete
 	 * @type {Function}
-	 * @deprecated In favour of the "complete" event. Will be removed in a future version.
+	 * @deprecated Use addEventListener and the "complete" event.
 	 */
-	p.onComplete = null;
-
 	/**
-	 * The callback that is fired when the loader encounters an error.
+	 * REMOVED. Use {{#crossLink "EventDispatcher/addEventListener"}}{{/crossLink}} and the {{#crossLink "AbstractLoader/error:event"}}{{/crossLink}}
+	 * event.
 	 * @property onError
 	 * @type {Function}
-	 * @deprecated In favour of the "error" event. Will be removed in a future version.
+	 * @deprecated Use addEventListener and the "error" event.
 	 */
-	p.onError = null;
-
-
-// mix-ins:
-	// EventDispatcher methods:
-	p.addEventListener = null;
-	p.removeEventListener = null;
-	p.removeAllEventListeners = null;
-	p.dispatchEvent = null;
-	p.hasEventListener = null;
-	p._listeners = null;
-	createjs.EventDispatcher.initialize(p);
-
 
 	/**
 	 * Get a reference to the manifest item that is loaded by this loader. In most cases this will be the value that was
@@ -243,21 +238,19 @@ this.createjs = this.createjs||{};
 
 //Callback proxies
 	/**
-	 * Dispatch a loadstart event (and onLoadStart callback). Please see the <code>AbstractLoader.loadstart</code> event
+	 * Dispatch a loadstart event. Please see the {{#crossLink "AbstractLoader/loadstart:event"}}{{/crossLink}} event
 	 * for details on the event payload.
 	 * @method _sendLoadStart
 	 * @protected
 	 */
 	p._sendLoadStart = function() {
 		if (this._isCanceled()) { return; }
-		this.onLoadStart && this.onLoadStart({target:this});
-		this.dispatchEvent("loadStart"); // DEPRECATED
 		this.dispatchEvent("loadstart");
 	};
 
 	/**
-	 * Dispatch a progress event (and onProgress callback). Please see the <code>AbstractLoader.progress</code> event
-	 * for details on the event payload.
+	 * Dispatch a progress event. Please see the {{#crossLink "AbstractLoader/progress:event"}}{{/crossLink}} event for
+	 * details on the event payload.
 	 * @method _sendProgress
 	 * @param {Number | Object} value The progress of the loaded item, or an object containing <code>loaded</code>
 	 * and <code>total</code> properties.
@@ -268,44 +261,41 @@ this.createjs = this.createjs||{};
 		var event = null;
 		if (typeof(value) == "number") {
 			this.progress = value;
-			event = {loaded:this.progress, total:1};
+			event = new createjs.Event("progress");
+			event.loaded = this.progress;
+			event.total = 1;
 		} else {
 			event = value;
 			this.progress = value.loaded / value.total;
 			if (isNaN(this.progress) || this.progress == Infinity) { this.progress = 0; }
 		}
-		event.target = this;
-		event.type = "progress";
 		event.progress = this.progress;
-		this.onProgress && this.onProgress(event);
-		this.dispatchEvent(event);
+		this.hasEventListener("progress") && this.dispatchEvent(event);
 	};
 
 	/**
-	 * Dispatch a complete event (and onComplete callback). Please see the <code>AbstractLoader.complete</code> event
+	 * Dispatch a complete event. Please see the {{#crossLink "AbstractLoader/complete:event"}}{{/crossLink}} event
 	 * for details on the event payload.
 	 * @method _sendComplete
 	 * @protected
 	 */
 	p._sendComplete = function() {
 		if (this._isCanceled()) { return; }
-		this.onComplete && this.onComplete({target:this});
 		this.dispatchEvent("complete");
 	};
 
 	/**
-	 * Dispatch an error event (and onError callback). Please see the <code>AbstractLoader.error</code> event for
+	 * Dispatch an error event. Please see the {{#crossLink "AbstractLoader/error:event"}}{{/crossLink}} event for
 	 * details on the event payload.
 	 * @method _sendError
 	 * @param {Object} event The event object containing specific error properties.
 	 * @protected
 	 */
 	p._sendError = function(event) {
-		if (this._isCanceled()) { return; }
-		if (event == null) { event = {}; }
-		event.target = this;
-		event.type = "error";
-		this.onError && this.onError(event);
+		if (this._isCanceled() || !this.hasEventListener("error")) { return; }
+		if (event == null) {
+			event = new createjs.Event("error");
+		}
 		this.dispatchEvent(event);
 	};
 
@@ -324,16 +314,49 @@ this.createjs = this.createjs||{};
 	};
 
 	/**
-	 * Parse a file URI using the <code>AbstractLoader.FILE_PATTERN</code> RegExp pattern.
 	 * @method _parseURI
-	 * @param {String} path The file path to parse.
-	 * @return {Array} The matched file contents. Please see the <code>AbstractLoader.FILE_PATTERN</code> property for
-	 * details on the return value. This will return null if it does not match.
-	 * @protected
+	 * Parse a file path to determine the information we need to work with it. Currently, PreloadJS needs to know:
+	 * <ul>
+	 *     <li>If the path is absolute. Absolute paths start with a protocol (such as `http://`, `file://`, or
+	 *     `//networkPath`)</li>
+	 *     <li>If the path is relative. Relative paths start with `../` or `/path` (or similar)</li>
+	 *     <li>The file extension. This is determined by the filename with an extension. Query strings are dropped, and
+	 *     the file path is expected to follow the format `name.ext`.</li>
+	 * </ul>
+	 *
+	 * <strong>Note:</strong> This has changed from earlier versions, which used a single, complicated Regular Expression, which
+	 * was difficult to maintain, and over-aggressive in determining all file properties. It has been simplified to
+	 * only pull out what it needs.
+	 * @param path
+	 * @returns {Object} An Object with an `absolute` and `relative` Boolean, as well as an optional 'extension` String
+	 * property, which is the lowercase extension.
+	 * @private
 	 */
 	p._parseURI = function(path) {
-		if (!path) { return null; }
-		return path.match(s.FILE_PATTERN);
+		var info = { absolute: false, relative:false };
+		if (path == null) { return info; };
+
+		// Drop the query string
+		var queryIndex = path.indexOf("?");
+		if (queryIndex > -1) {
+			path = path.substr(0,queryIndex);
+		}
+
+		// Absolute
+		var match;
+		if (s.ABSOLUTE_PATT.test(path)) {
+			info.absolute = true;
+
+		// Relative
+		} else if (s.RELATIVE_PATT.test(path)) {
+			info.relative = true;
+		}
+
+		// Extension
+		if (match = path.match(s.EXTENSION_PATT)) {
+			info.extension = match[1].toLowerCase();
+		}
+		return info;
 	};
 
 	/**
@@ -358,25 +381,16 @@ this.createjs = this.createjs||{};
 	};
 
 	/**
-	 * A utility method that builds a file path using a source, a basePath, and a data object, and formats it into a new
-	 * path. All of the loaders in PreloadJS use this method to compile paths when loading.
+	 * A utility method that builds a file path using a source and a data object, and formats it into a new path. All
+	 * of the loaders in PreloadJS use this method to compile paths when loading.
 	 * @method buildPath
 	 * @param {String} src The source path to add values to.
-	 * @param {String} [basePath] A string to prepend to the file path. Sources beginning with http:// or similar will
-	 * not receive a base path.
 	 * @param {Object} [data] Object used to append values to this request as a query string. Existing parameters on the
 	 * path will be preserved.
 	 * @returns {string} A formatted string that contains the path and the supplied parameters.
 	 * @since 0.3.1
 	 */
-	p.buildPath = function(src, _basePath, data) {
-		if (_basePath != null) {
-			var match = this._parseURI(src);
-			// IE 7,8 Return empty string here.
-			if (match[1] == null || match[1] == '') {
-				src = _basePath + src;
-			}
-		}
+	p.buildPath = function(src, data) {
 		if (data == null) {
 			return src;
 		}
@@ -394,6 +408,39 @@ this.createjs = this.createjs||{};
 		} else {
 			return src + '?' + this._formatQueryString(data, query);
 		}
+	};
+
+	/**
+	 * @method _isCrossDomain
+	 * @param {Object} item A load item with a `src` property
+	 * @return {Boolean} If the load item is loading from a different domain than the current location.
+	 * @private
+	 */
+	p._isCrossDomain = function(item) {
+		var target = document.createElement("a");
+		target.href = item.src;
+
+		var host = document.createElement("a");
+		host.href = location.href;
+
+		var crossdomain = (target.hostname != "") &&
+				(target.port != host.port ||
+						target.protocol != host.protocol ||
+						target.hostname != host.hostname);
+		return crossdomain;
+	}
+
+	/**
+	 * @method _isLocal
+	 * @param {Object} item A load item with a `src` property
+	 * @return {Boolean} If the load item is loading from the "file:" protocol. Assume that the host must be local as
+	 * well.
+	 * @private
+	 */
+	p._isLocal = function(item) {
+		var target = document.createElement("a");
+		target.href = item.src;
+		return target.hostname == "" && target.protocol == "file:";
 	};
 
 	/**

@@ -35,6 +35,7 @@
 this.createjs = this.createjs || {};
 
 (function () {
+	"use strict";
 
 	/**
 	 * A preloader that loads items using XHR requests, usually XMLHttpRequest. However XDomainRequests will be used
@@ -46,11 +47,31 @@ this.createjs = this.createjs || {};
 	 * @constructor
 	 * @param {Object} item The object that defines the file to load. Please see the {{#crossLink "LoadQueue/loadFile"}}{{/crossLink}}
 	 * for an overview of supported file properties.
+	 * @param {String} [crossOrigin] An optional flag to support images loaded from a CORS-enabled server. Please see
+	 * {{#crossLink "LoadQueue/_crossOrigin:property"}}{{/crossLink}} for more info.
 	 * @extends AbstractLoader
 	 */
-	var XHRLoader = function (item, basePath) {
-		this.init(item, basePath);
+	var XHRLoader = function (item, crossOrigin) {
+		this.init(item, crossOrigin);
 	};
+
+	var s = XHRLoader;
+
+	/**
+	 * A list of XMLHTTP object IDs to try when building an ActiveX object for XHR requests in earlier versions of IE.
+	 * @property ACTIVEX_VERSIONS
+	 * @type {Array}
+	 * @since 0.4.2
+	 * @private
+	 */
+	s.ACTIVEX_VERSIONS = [
+		"Msxml2.XMLHTTP.6.0",
+		"Msxml2.XMLHTTP.5.0",
+		"Msxml2.XMLHTTP.4.0",
+		"MSXML2.XMLHTTP.3.0",
+		"MSXML2.XMLHTTP",
+		"Microsoft.XMLHTTP"
+	];
 
 	var p = XHRLoader.prototype = new createjs.AbstractLoader();
 
@@ -101,10 +122,19 @@ this.createjs = this.createjs || {};
 	 */
 	p._rawResponse = null;
 
+	/**
+	 * See {{#crossLink "LoadQueue/_crossOrigin:property"}}{{/crossLink}}
+	 * @property _crossOrigin
+	 * @type {String}
+	 * @defaultValue ""
+	 * @private
+	 */
+	p._crossOrigin = "";
+
 	// Overrides abstract method in AbstractLoader
-	p.init = function (item, basePath) {
+	p.init = function (item, crossOrigin) {
 		this._item = item;
-		this._basePath = basePath;
+		this._crossOrigin = crossOrigin;
 		if (!this._createXHR(item)) {
 			//TODO: Throw error?
 		}
@@ -158,7 +188,13 @@ this.createjs = this.createjs || {};
 		this._request.ontimeout = createjs.proxy(this._handleTimeout, this);
 		// Set up a timeout if we don't have XHR2
 		if (this._xhrLevel == 1) {
-			this._loadTimeout = setTimeout(createjs.proxy(this._handleTimeout, this), createjs.LoadQueue.LOAD_TIMEOUT);
+			var duration = createjs.LoadQueue.LOAD_TIMEOUT;
+			if (duration == 0) {
+				duration = createjs.LoadQueue.loadTimeout;
+			} else {
+				try { console.warn("LoadQueue.LOAD_TIMEOUT has been deprecated in favor of LoadQueue.loadTimeout");} catch(e) {}
+			}
+			this._loadTimeout = setTimeout(createjs.proxy(this._handleTimeout, this), duration);
 		}
 
 		// Note: We don't get onload in all browsers (earlier FF and IE). onReadyStateChange handles these.
@@ -174,7 +210,9 @@ this.createjs = this.createjs || {};
 				this._request.send(this._formatQueryString(this._item.values));
 			}
 		} catch (error) {
-			this._sendError({source:error});
+			var event = new createjs.Event("error");
+			event.error = error;
+			this._sendError(event);
 		}
 	};
 
@@ -222,10 +260,14 @@ this.createjs = this.createjs || {};
 	 * @private
 	 */
 	p._handleProgress = function (event) {
-		if (!event || (event.loaded > 0 && event.total == 0)) {
+		if (!event || event.loaded > 0 && event.total == 0) {
 			return; // Sometimes we get no "total", so just ignore the progress event.
 		}
-		this._sendProgress({loaded:event.loaded, total:event.total});
+
+		var newEvent = new createjs.Event("progress");
+		newEvent.loaded = event.loaded;
+		newEvent.total = event.total;
+		this._sendProgress(newEvent);
 	};
 
 	/**
@@ -247,7 +289,9 @@ this.createjs = this.createjs || {};
 	 */
 	p._handleAbort = function (event) {
 		this._clean();
-		this._sendError();
+		var newEvent = new createjs.Event("error");
+		newEvent.text = "XHR_ABORTED";
+		this._sendError(newEvent);
 	};
 
 	/**
@@ -258,7 +302,9 @@ this.createjs = this.createjs || {};
 	 */
 	p._handleError = function (event) {
 		this._clean();
-		this._sendError();
+		var newEvent = new createjs.Event("error");
+		//TODO: Propagate event error
+		this._sendError(newEvent);
 	};
 
 	/**
@@ -309,7 +355,10 @@ this.createjs = this.createjs || {};
 	 */
 	p._handleTimeout = function (event) {
 		this._clean();
-		this._sendError({reason:"PRELOAD_TIMEOUT"});
+		var newEvent = new createjs.Event("error");
+		newEvent.text = "PRELOAD_TIMEOUT";
+		//TODO: Propagate actual event error
+		this._sendError(event);
 	};
 
 
@@ -382,42 +431,31 @@ this.createjs = this.createjs || {};
 	 */
 	p._createXHR = function (item) {
 		// Check for cross-domain loads. We can't fully support them, but we can try.
-		var target = document.createElement("a");
-		target.href = this.buildPath(item.src, this._basePath);
+		var crossdomain = this._isCrossDomain(item);
+		var headers = {};
 
-		var host = document.createElement("a");
-		host.href = location.href;
-
-		var crossdomain = (target.hostname != "") &&
-						 	(target.port != host.port ||
-							 target.protocol != host.protocol ||
-							 target.hostname != host.hostname);
-
-		// Create the request. Fall back to whatever support we have.
+		// Create the request. Fallback to whatever support we have.
 		var req = null;
-		if (crossdomain && window.XDomainRequest) {
-			req = new XDomainRequest(); // Note: IE9 will fail if this is not actually cross-domain.
-		} else if (window.XMLHttpRequest) { // Old IE versions use a different approach
+		if (window.XMLHttpRequest) {
 			req = new XMLHttpRequest();
-		} else {
-			try {
-				req = new ActiveXObject("Msxml2.XMLHTTP.6.0");
-			} catch (e) {
-				try {
-					req = new ActiveXObject("Msxml2.XMLHTTP.3.0");
-				} catch (e) {
-					try {
-						req = new ActiveXObject("Msxml2.XMLHTTP");
-					} catch (e) {
-						return false;
-					}
-				}
+			// This is 8 or 9, so use XDomainRequest instead.
+			if (crossdomain && req.withCredentials === undefined && window.XDomainRequest) {
+				req = new XDomainRequest();
 			}
+		} else { // Old IE versions use a different approach
+			for (var i = 0, l=s.ACTIVEX_VERSIONS.length; i<l; i++) {
+	            var axVersion = s.ACTIVEX_VERSIONS[i];
+	            try {
+	                req = new ActiveXObject(axVersions);
+		            break;
+	            } catch (e) {}
+	        }
+			if (req == null) { return false; }
 		}
 
 		// IE9 doesn't support overrideMimeType(), so we need to check for it.
-		if (item.type == createjs.LoadQueue.TEXT && req.overrideMimeType) {
-			req.overrideMimeType("text/plain; charset=x-user-defined");
+		if (createjs.LoadQueue.isText(item.type) && req.overrideMimeType) {
+			req.overrideMimeType("text/plain; charset=utf-8");
 		}
 
 		// Determine the XHR level
@@ -425,29 +463,44 @@ this.createjs = this.createjs || {};
 
 		var src = null;
 		if (item.method == createjs.LoadQueue.GET) {
-			src = this.buildPath(item.src, this._basePath, item.values);
+			src = this.buildPath(item.src, item.values);
 		} else {
-			src = this.buildPath(item.src, this._basePath);
+			src = item.src;
 		}
 
 		// Open the request.  Set cross-domain flags if it is supported (XHR level 1 only)
 		req.open(item.method || createjs.LoadQueue.GET, src, true);
 
 		if (crossdomain && req instanceof XMLHttpRequest && this._xhrLevel == 1) {
-			req.setRequestHeader("Origin", location.origin);
+			headers["Origin"] = location.origin;
 		}
 
 		// To send data we need to set the Content-type header)
-		 if (item.values && item.method == createjs.LoadQueue.POST) {
-			req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-		 }
+		if (item.values && item.method == createjs.LoadQueue.POST) {
+			headers["Content-Type"] = "application/x-www-form-urlencoded";
+		}
+
+		if (!crossdomain && !headers["X-Requested-With"]) {
+			headers["X-Requested-With"] = "XMLHttpRequest";
+		}
+
+		if (item.headers) {
+			for (var n in item.headers) {
+				headers[n] = item.headers[n];
+			}
+		}
 
 		// Binary files are loaded differently.
 		if (createjs.LoadQueue.isBinary(item.type)) {
 			req.responseType = "arraybuffer";
 		}
 
+		for (n in headers) {
+			req.setRequestHeader(n, headers[n])
+		}
+
 		this._request = req;
+
 		return true;
 	};
 
@@ -486,7 +539,8 @@ this.createjs = this.createjs || {};
 			// Note: Images need to wait for onload, but do use the cache.
 			case createjs.LoadQueue.IMAGE:
 				tag.onload = createjs.proxy(this._handleTagReady, this);
-				tag.src = this.buildPath(this._item.src, this._basePath, this._item.values);
+				if (this._crossOrigin != "") { tag.crossOrigin = "Anonymous"; }// We can assume this, since XHR images are always loaded on a server.
+				tag.src = this.buildPath(this._item.src, this._item.values);
 
 				this._rawResponse = this._response;
 				this._response = tag;
@@ -518,6 +572,7 @@ this.createjs = this.createjs || {};
 
 			case createjs.LoadQueue.XML:
 				var xml = this._parseXML(this._response, "text/xml");
+				this._rawResponse = this._response;
 				this._response = xml;
 				return true;
 
@@ -533,6 +588,7 @@ this.createjs = this.createjs || {};
 				return true;
 
 			case createjs.LoadQueue.JSON:
+			case createjs.LoadQueue.MANIFEST:
 				var json = {};
 				try {
 					if(JSON.minify && (this._item.data && this._item.data.minify))
@@ -562,14 +618,18 @@ this.createjs = this.createjs || {};
 	 */
 	p._parseXML = function (text, type) {
 		var xml = null;
-		if (window.DOMParser) {
-			var parser = new DOMParser();
-			xml = parser.parseFromString(text, type);  // OJR Opera throws DOMException: NOT_SUPPORTED_ERR  // potential solution https://gist.github.com/1129031
-		} else { // IE
-			xml = new ActiveXObject("Microsoft.XMLDOM");
-			xml.async = false;
-			xml.loadXML(text);
-		}
+		try {
+			// CocoonJS does not support XML parsing with either method.
+			// Windows (?) Opera DOMParser throws DOMException: NOT_SUPPORTED_ERR  // potential solution https://gist.github.com/1129031
+			if (window.DOMParser) {
+				var parser = new DOMParser();
+				xml = parser.parseFromString(text, type);
+			} else { // IE
+				xml = new ActiveXObject("Microsoft.XMLDOM");
+				xml.async = false;
+				xml.loadXML(text);
+			}
+		} catch (e) {}
 		return xml;
 	};
 
@@ -579,12 +639,14 @@ this.createjs = this.createjs || {};
 	 * @private
 	 */
 	p._handleTagReady = function () {
+		var tag = this._item.tag;
+		tag && (tag.onload = null);
 		this._sendComplete();
-	}
+	};
 
 	p.toString = function () {
 		return "[PreloadJS XHRLoader]";
-	}
+	};
 
 	createjs.XHRLoader = XHRLoader;
 

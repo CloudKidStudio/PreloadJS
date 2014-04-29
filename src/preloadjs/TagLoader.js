@@ -35,7 +35,7 @@
 this.createjs = this.createjs||{};
 
 (function() {
-
+	"use strict";
 	/**
 	 * A preloader that loads items using a tag-based approach. HTML audio and images can use this loader to load
 	 * content cross-domain without security errors, whereas anything loaded with XHR has potential issues with cross-
@@ -52,8 +52,8 @@ this.createjs = this.createjs||{};
 	 * @param {Object} item The item to load. Please see {{#crossLink "LoadQueue/loadFile"}}{{/crossLink}} for
 	 * information on load items.
 	 */
-	var TagLoader = function (item, basePath) {
-		this.init(item, basePath);
+	var TagLoader = function (item) {
+		this.init(item);
 	};
 
 	var p = TagLoader.prototype = new createjs.AbstractLoader();
@@ -83,6 +83,7 @@ this.createjs = this.createjs||{};
 	 * @property _isAudio
 	 * @type {Boolean}
 	 * @default false
+	 * @protected
 	 */
 	p._isAudio = false;
 
@@ -105,11 +106,10 @@ this.createjs = this.createjs||{};
 	p._jsonResult = null;
 
 	// Overrides abstract method in AbstractLoader
-	p.init = function (item, basePath) {
+	p.init = function (item) {
 		this._item = item;
-		this._basePath = basePath;
 		this._tag = item.tag;
-		this._isAudio = (window.HTMLAudioElement && item.tag instanceof HTMLAudioElement);
+		this._isAudio = (window.HTMLAudioElement && item.tag instanceof window.HTMLAudioElement);
 		this._tagCompleteProxy = createjs.proxy(this._handleLoad, this);
 	};
 
@@ -120,7 +120,7 @@ this.createjs = this.createjs||{};
 	 * @return {HTMLImageElement | HTMLAudioElement | Object} The loaded and parsed content.
 	 */
 	p.getResult = function() {
-		if (this._item.type == createjs.LoadQueue.JSONP) {
+		if (this._item.type == createjs.LoadQueue.JSONP || this._item.type == createjs.LoadQueue.MANIFEST) {
 			return this._jsonResult;
 		} else {
 			return this._tag;
@@ -131,7 +131,6 @@ this.createjs = this.createjs||{};
 	p.cancel = function() {
 		this.canceled = true;
 		this._clean();
-		var item = this.getItem();
 	};
 
 	// Overrides abstract method in AbstractLoader
@@ -139,9 +138,10 @@ this.createjs = this.createjs||{};
 		var item = this._item;
 		var tag = this._tag;
 
-		// In case we don't get any events.
 		clearTimeout(this._loadTimeout); // Clear out any existing timeout
-		this._loadTimeout = setTimeout(createjs.proxy(this._handleTimeout, this), createjs.LoadQueue.LOAD_TIMEOUT);
+		var duration = createjs.LoadQueue.LOAD_TIMEOUT;
+		if (duration == 0) { duration = createjs.LoadQueue.loadTimeout; }
+		this._loadTimeout = setTimeout(createjs.proxy(this._handleTimeout, this), duration);
 
 		if (this._isAudio) {
 			tag.src = null; // Unset the source so we can set the preload type to "auto" without kicking off a load. This is only necessary for audio tags passed in by the developer.
@@ -162,7 +162,7 @@ this.createjs = this.createjs||{};
 			tag.onreadystatechange = createjs.proxy(this._handleReadyStateChange,  this);
 		}
 
-		var src = this.buildPath(item.src, this._basePath, item.values);
+		var src = this.buildPath(item.src, item.values);
 
 		// Set the src after the events are all added.
 		switch(item.type) {
@@ -177,7 +177,9 @@ this.createjs = this.createjs||{};
 		}
 
 		// If we're loading JSONP, we need to add our callback now.
-		if (item.type == createjs.LoadQueue.JSONP) {
+		if (item.type == createjs.LoadQueue.JSONP
+				|| item.type == createjs.LoadQueue.JSON
+				|| item.type == createjs.LoadQueue.MANIFEST) {
 			if (item.callback == null) {
 				throw new Error('callback is required for loading JSONP requests.');
 			}
@@ -194,17 +196,34 @@ this.createjs = this.createjs||{};
 		if (item.type == createjs.LoadQueue.SVG ||
 			item.type == createjs.LoadQueue.JSONP ||
 			item.type == createjs.LoadQueue.JSON ||
+			item.type == createjs.LoadQueue.MANIFEST ||
 			item.type == createjs.LoadQueue.JAVASCRIPT ||
 			item.type == createjs.LoadQueue.CSS) {
 				this._startTagVisibility = tag.style.visibility;
 				tag.style.visibility = "hidden";
-				(document.body || document.getElementsByTagName("body")[0]).appendChild(tag);
+				var node = document.body || document.getElementsByTagName("body")[0];
+				if (node == null) {
+					if (item.type == createjs.LoadQueue.SVG) {
+						this._handleSVGError();
+						return;
+					} else {
+						node = document.head || document.getElementsByTagName("head");
+					}
+				}
+				node.appendChild(tag);
 		}
 
 		// Note: Previous versions didn't seem to work when we called load() for OGG tags in Firefox. Seems fixed in 15.0.1
 		if (tag.load != null) {
 			tag.load();
 		}
+	};
+
+	p._handleSVGError = function() {
+		this._clean();
+		var event = new createjs.Event("error");
+		event.text = "SVG_NO_BODY";
+		this._sendError(event);
 	};
 
 	p._handleJSONPLoad = function(data) {
@@ -219,7 +238,9 @@ this.createjs = this.createjs||{};
 	 */
 	p._handleTimeout = function() {
 		this._clean();
-		this._sendError({reason:"PRELOAD_TIMEOUT"}); //TODO: Evaluate a reason prop
+		var event = new createjs.Event("error");
+		event.text = "PRELOAD_TIMEOUT";
+		this._sendError(event);
 	};
 
 	/**
@@ -237,9 +258,12 @@ this.createjs = this.createjs||{};
 	 * @method _handleError
 	 * @private
 	 */
-	p._handleError = function() {
+	p._handleError = function(event) {
 		this._clean();
-		this._sendError(); //TODO: Reason or error?
+
+		var newEvent = new createjs.Event("error");
+		//TODO: Propagate actual event error?
+		this._sendError(newEvent);
 	};
 
 	/**
@@ -272,18 +296,21 @@ this.createjs = this.createjs||{};
 		var item = this.getItem();
 		var tag = item.tag;
 
-		if (this.loaded || this.isAudio && tag.readyState !== 4) { return; } //LM: Not sure if we still need the audio check.
+		if (this.loaded || this._isAudio && tag.readyState !== 4) { return; } //LM: Not sure if we still need the audio check.
 		this.loaded = true;
 
 		// Remove from the DOM
 		switch (item.type) {
 			case createjs.LoadQueue.SVG:
-			case createjs.LoadQueue.JSONP:
+			case createjs.LoadQueue.JSON:
+			case createjs.LoadQueue.JSONP: // Note: Removing script tags is a fool's errand.
+			case createjs.LoadQueue.MANIFEST:
+			case createjs.LoadQueue.CSS:
 				// case createjs.LoadQueue.CSS:
 				//LM: We may need to remove CSS tags loaded using a LINK
 				tag.style.visibility = this._startTagVisibility;
-				(document.body || document.getElementsByTagName("body")[0]).removeChild(tag);
-			break;
+				tag.parentNode && tag.parentNode.contains(tag) && tag.parentNode.removeChild(tag);
+				break;
 			default:
 		}
 
@@ -301,27 +328,37 @@ this.createjs = this.createjs||{};
 		clearTimeout(this._loadTimeout);
 
 		// Delete handlers.
-		var tag = this.getItem().tag;
-		tag.onload = null;
-		tag.removeEventListener && tag.removeEventListener("canplaythrough", this._tagCompleteProxy, false);
-		tag.onstalled = null;
-		tag.onprogress = null;
-		tag.onerror = null;
+		var item = this.getItem();
+		var tag = item.tag;
+		if (tag != null) {
+			tag.onload = null;
+			tag.removeEventListener && tag.removeEventListener("canplaythrough", this._tagCompleteProxy, false);
+			tag.onstalled = null;
+			tag.onprogress = null;
+			tag.onerror = null;
 
-		//TODO: Test this
-		if (tag.parentNode) {
-			tag.parentNode.removeChild(tag);
+			//TODO: Test this
+			if (tag.parentNode != null
+					&& item.type == createjs.LoadQueue.SVG
+					&& item.type == createjs.LoadQueue.JSON
+					&& item.type == createjs.LoadQueue.MANIFEST
+					&& item.type == createjs.LoadQueue.CSS
+					&& item.type == createjs.LoadQueue.JSONP) {
+				 // Note: Removing script tags is a fool's errand.
+				tag.parentNode.removeChild(tag);
+			}
 		}
 
 		var item = this.getItem();
-		if (item.type == createjs.LoadQueue.JSONP) {
+		if (item.type == createjs.LoadQueue.JSONP
+			|| item.type == createjs.LoadQueue.MANIFEST) {
 			window[item.callback] = null;
 		}
 	};
 
 	p.toString = function() {
 		return "[PreloadJS TagLoader]";
-	}
+	};
 
 	createjs.TagLoader = TagLoader;
 

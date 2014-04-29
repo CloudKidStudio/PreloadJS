@@ -18,7 +18,12 @@
 
     <script src="./assets/easeljs-NEXT.min.js"></script>
     <script src="./assets/tweenjs-NEXT.min.js"></script>
-    <script type="text/javascript" src="../src/easeljs/events/EventDispatcher.js"></script>
+
+	<!-- Note: All PreloadJS classes are listed here: -->
+    <script type="text/javascript" src="../src/createjs/events/Event.js"></script>
+    <script type="text/javascript" src="../src/createjs/events/EventDispatcher.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/IndexOf.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/Proxy.js"></script>
     <script type="text/javascript" src="../src/preloadjs/AbstractLoader.js"></script>
     <script type="text/javascript" src="../src/preloadjs/LoadQueue.js"></script>
     <script type="text/javascript" src="../src/preloadjs/TagLoader.js"></script>
@@ -85,15 +90,15 @@
                 {src:"image3.jpg", id:"image3"}
             ];
 
-            preload = new createjs.LoadQueue(true, "assets/");
+            preload = new createjs.LoadQueue(true, "test/");
 
             // Use this instead to use tag loading
             //preload = new createjs.PreloadJS(false);
 
-            preload.addEventListener("progress", handleProgress);
-            preload.addEventListener("complete", handleComplete);
-            preload.addEventListener("fileload", handleFileLoad);
-            preload.loadManifest(manifest);
+            preload.on("progress", handleProgress);
+            preload.on("complete", handleComplete);
+            preload.on("fileload", handleFileLoad);
+            preload.loadManifest(manifest, true, "assets/");
 
             createjs.Ticker.setFPS(30);
         }
@@ -121,7 +126,7 @@
                 x: borderPadding/2 * 0.75,
                 y: borderPadding/2 * 0.75
             });
-            bmp.addEventListener("click", handleClick);
+            bmp.on("click", handleClick);
 
 
             var border = new createjs.Shape(
@@ -144,7 +149,7 @@
         function handleClick(event) {
            	currentItem = event.target.parent;
             var tween = createjs.Tween.get(currentItem, {override:true}).to({y:-350}, 200).call(tweenUpComplete).to({y:0}, 500);
-			tween.addEventListener("change", handleTweenChange);
+			tween.on("change", handleTweenChange);
         }        
 		
 		function handleTweenChange(tween) {

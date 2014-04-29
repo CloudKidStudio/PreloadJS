@@ -24,13 +24,18 @@
 
     <script src="./assets/easeljs-NEXT.min.js"></script>
 
-    <!-- We also provide hosted minified versions of all CreateJS libraries.
-    	  http://code.createjs.com -->
-    <script type="text/javascript" src="../src/easeljs/events/EventDispatcher.js"></script>
+	<!-- Note: All PreloadJS classes are listed here: -->
+    <script type="text/javascript" src="../src/createjs/events/Event.js"></script>
+    <script type="text/javascript" src="../src/createjs/events/EventDispatcher.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/IndexOf.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/Proxy.js"></script>
     <script type="text/javascript" src="../src/preloadjs/AbstractLoader.js"></script>
     <script type="text/javascript" src="../src/preloadjs/LoadQueue.js"></script>
     <script type="text/javascript" src="../src/preloadjs/TagLoader.js"></script>
     <script type="text/javascript" src="../src/preloadjs/XHRLoader.js"></script>
+
+    <!-- We also provide hosted minified versions of all CreateJS libraries.
+    	  http://code.createjs.com -->
 
     <script type="text/javascript">
 
@@ -70,7 +75,7 @@
             };
 
             var ss = new createjs.SpriteSheet(spriteSheet);
-            grant = new createjs.BitmapAnimation(ss);
+            grant = new createjs.Sprite(ss);
 
             // Set up looping
             ss.getAnimation("run").next = "run";
@@ -97,8 +102,8 @@
             ];
 
             loader = new createjs.LoadQueue();
-            loader.addEventListener("fileload", handleFileLoad);
-            loader.addEventListener("complete", handleComplete);
+            loader.on("fileload", handleFileLoad);
+            loader.on("complete", handleComplete);
             loader.loadManifest(manifest);
             stage.autoClear = false;
         }
@@ -151,10 +156,10 @@
             }
 
             stage.addChild(sky, ground, hill, hill2, grant);
-            stage.onMouseDown = handleJumpStart;
+            stage.on("mousedown", handleJumpStart);
 
             createjs.Ticker.setFPS(40);
-            createjs.Ticker.addEventListener("tick", tick);
+            createjs.Ticker.on("tick", tick);
         }
 
         function handleJumpStart() {

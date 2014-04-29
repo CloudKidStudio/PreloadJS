@@ -66,7 +66,11 @@
 		<div class="progress"></div>
 	</div>
 
-    <script type="text/javascript" src="../src/easeljs/events/EventDispatcher.js"></script>
+	<!-- Note: All PreloadJS classes are listed here: -->
+    <script type="text/javascript" src="../src/createjs/events/Event.js"></script>
+    <script type="text/javascript" src="../src/createjs/events/EventDispatcher.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/IndexOf.js"></script>
+	<script type="text/javascript" src="../src/createjs/utils/Proxy.js"></script>
     <script type="text/javascript" src="../src/preloadjs/AbstractLoader.js"></script>
     <script type="text/javascript" src="../src/preloadjs/LoadQueue.js"></script>
     <script type="text/javascript" src="../src/preloadjs/TagLoader.js"></script>
@@ -129,10 +133,10 @@
             // Use this instead to use tag loading
             //preload = new createjs.LoadQueue(false);
 
-            preload.addEventListener("fileload", handleFileLoad);
-            preload.addEventListener("progress", handleOverallProgress);
-            preload.addEventListener("fileprogress", handleFileProgress);
-            preload.addEventListener("error", handleFileError);
+            preload.on("fileload", handleFileLoad);
+            preload.on("progress", handleOverallProgress);
+            preload.on("fileprogress", handleFileProgress);
+            preload.on("error", handleFileError);
             preload.setMaxConnections(5);
         }
 
@@ -168,7 +172,7 @@
 
         // File complete handler
         function handleFileLoad(event) {
-            var div = map[event.item.src];
+            var div = map[event.item.id];
             div.addClass("complete");
 
             // Get a reference to the loaded image (<img/>)
@@ -189,7 +193,7 @@
 
         // File progress handler
         function handleFileProgress(event) {
-            var div = map[event.item.src]; // Lookup the related item
+            var div = map[event.item.id]; // Lookup the related item
             div.children("DIV").width(event.progress*div.width()); // Set the width the progress.
         }
 
@@ -200,7 +204,7 @@
 
         // An error happened on a file
         function handleFileError(event) {
-            var div = map[event.item.src];
+            var div = map[event.item.id];
             div.addClass("error");
         }
 
