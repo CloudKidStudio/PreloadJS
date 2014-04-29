@@ -1,20 +1,20 @@
 {
-    "name": "preloadjs",
-    "version": "0.4.1",
-    "main": "lib/preloadjs.min.js",
-    "ignore": [
-	"**/.*",
-	"node_modules",
-	"bower_components",
-        "README.md",
-        "README_CREATEJS_NAMESPACE.txt",
-        "VERSIONS.txt",
-        "tools",
-        "src",
-        "examples",
-	"extras",
-        "docs",
-        "build",
-        "lib/README.txt"
-    ]
+	"name": "preloadjs",
+	"version": "0.4.1",
+	"main": "lib/preloadjs.min.js",
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"README.md",
+		"README_CREATEJS_NAMESPACE.txt",
+		"VERSIONS.txt",
+		"tools",
+		"src",
+		"examples",
+		"extras",
+		"docs",
+		"build",
+		"lib/README.txt"
+	]
 }
