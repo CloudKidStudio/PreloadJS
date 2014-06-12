@@ -8,8 +8,7 @@
 		"../src/preloadjs/AbstractLoader.js",
 		"../src/preloadjs/LoadQueue.js",
 		"../src/preloadjs/TagLoader.js",
-		"../src/preloadjs/XHRLoader.js",
-		"../src/preloadjs/minify.json.js"
+		"../src/preloadjs/XHRLoader.js"
 	],
 
 	"docs_out_path":"./output/PreloadJSDocs/"
