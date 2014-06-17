@@ -376,8 +376,9 @@ this.createjs = this.createjs || {};
 
 		switch (status) {
 			case 404:   // Not Found
-			case 0:     // Not Loaded
-				return false;
+				return false
+			case 0:     // Not Loaded - in some cases could actually be loaded (like Cordova)
+				return !!this._getResponse();
 		}
 		return true;
 	};
