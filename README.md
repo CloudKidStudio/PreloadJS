@@ -28,3 +28,9 @@ use it for almost any purpose (including commercial projects). We appreciate cre
 **LoadQueue**
 The main class that manages all preloading. Instantiate a LoadQueue instance, load a file or manifest, and track
 progress and complete events. Check out the [docs](http://createjs.com/Docs/PreloadJS/) for more information.
+
+## CloudKid changes
+* Changed JSON loading to use eval() so that we can have javascript style comments. Since this is 
+how JSONP works anyway, we aren't too concerned by potential unsafe JSON.
+* Added some checks for errors, so that you can see what url is missing a file extension and is breaking LoadQueue.
+* Made a small fix to XHRLoader to be more Cordova friendly.
