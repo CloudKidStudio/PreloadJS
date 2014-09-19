@@ -592,11 +592,9 @@ this.createjs = this.createjs || {};
 			case createjs.LoadQueue.MANIFEST:
 				var json;
 				try {
-					/*if(JSON.minify && (this._item.data && this._item.data.minify))
-					{
-						this._response = JSON.minify(this._response);
-					}
-					json = JSON.parse(this._response);*/
+					/*
+					json = JSON.parse(this._response);
+					*/
 					//use eval to allow javascript comments in the JSON
 					eval("json = " + this._response + ";");//thankfully, uglify won't mangle 'var json' because we use it in eval()
 				} catch (error) {
