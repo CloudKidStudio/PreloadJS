@@ -29,7 +29,7 @@ use it for almost any purpose (including commercial projects). We appreciate cre
 The main class that manages all preloading. Instantiate a LoadQueue instance, load a file or manifest, and track
 progress and complete events. Check out the [docs](http://createjs.com/Docs/PreloadJS/) for more information.
 
-## CloudKid changes
+## SpringRoll changes
 * Changed re-initialization in LoadQueue.remove(), so that cross origin settings are retained.
 * Added a checks for url parsing errors, so that you can see what url is missing a file extension and is breaking LoadQueue.
 * Made a small change to XHRRequest's _checkError() to be more Cordova friendly.
