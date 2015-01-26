@@ -359,8 +359,9 @@ this.createjs = this.createjs || {};
 
 		switch (status) {
 			case 404:   // Not Found
-			case 0:     // Not Loaded
 				return new Error(status);
+			case 0:     // Not Loaded
+				return this._getResponse() ? null : new Error(status);
 		}
 		return null;
 	};

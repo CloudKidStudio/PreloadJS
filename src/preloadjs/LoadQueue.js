@@ -890,7 +890,7 @@ this.createjs = this.createjs || {};
 			for (var n in this._loadItemsById) {
 				this._disposeItem(this._loadItemsById[n]);
 			}
-			this.init(this.preferXHR, this._basePath);
+			this.init(this.preferXHR, this._basePath, this._crossOrigin);
 
 			// Remove specific items
 		} else {
@@ -1341,6 +1341,9 @@ this.createjs = this.createjs || {};
 		var match = createjs.RequestUtils.parseURI(item.src);
 		if (match.extension) { item.ext = match.extension; }
 		if (item.type == null) {
+			if(!item.ext && window.console) {
+				console.error("unable to get extension for " + item.src);
+			}
 			item.type = createjs.RequestUtils.getTypeByExtension(item.ext);
 		}
 

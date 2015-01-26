@@ -30,7 +30,7 @@ The main class that manages all preloading. Instantiate a LoadQueue instance, lo
 progress and complete events. Check out the [docs](http://createjs.com/Docs/PreloadJS/) for more information.
 
 ## CloudKid changes
-* Changed JSON loading to use eval() so that we can have javascript style comments. Since this is 
-how JSONP works anyway, we aren't too concerned by potential unsafe JSON.
-* Added some checks for errors, so that you can see what url is missing a file extension and is breaking LoadQueue.
-* Made a small fix to XHRLoader to be more Cordova friendly.
+* Changed re-initialization in LoadQueue.remove(), so that cross origin settings are retained.
+* Added a checks for url parsing errors, so that you can see what url is missing a file extension and is breaking LoadQueue.
+* Made a small change to XHRRequest's _checkError() to be more Cordova friendly.
+* Removed version number from built files, versioning is handled by the Git tags & Bower.
