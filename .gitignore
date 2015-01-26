@@ -7,9 +7,13 @@ node_modules/
 *.sublime-project
 *.sublime-workspace
 config.local.json
+docs/**/
 
 #-----------------------------
 # INVALID FILES
 # (for cross OS compatibility)
 #-----------------------------
 *[\<\>\:\"\/\\\|\?\*]*
+main.css
+*.codekit
+*.sass-cache
