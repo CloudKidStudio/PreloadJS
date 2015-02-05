@@ -34,3 +34,4 @@ progress and complete events. Check out the [docs](http://createjs.com/Docs/Prel
 * Added a checks for url parsing errors, so that you can see what url is missing a file extension and is breaking LoadQueue.
 * Made a small change to XHRRequest's _checkError() to be more Cordova friendly.
 * Removed version number from built files, versioning is handled by the Git tags & Bower.
+* Added a fallback in ImageLoader._formatResult() to handle iOS6 and other browsers that don't do URL.createObjectURL() properly.

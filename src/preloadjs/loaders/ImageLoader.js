@@ -134,9 +134,17 @@ this.createjs = this.createjs || {};
 				//document.body.removeChild(tag);
 			} else if (URL) {
 				var objURL = URL.createObjectURL(loader.getResult(true));
-				tag.src = objURL;
-				tag.onload = function () {
-					URL.revokeObjectURL(_this.src);
+				//Apparently some browsers, like iOS6 Safari, IE, and some versions of Android
+				//support URL, but don't do createObjectURL for images
+				//if objURL is undefined, we need to use the normal src
+				if(objURL) {
+					tag.src = objURL;
+					tag.onload = function () {
+						URL.revokeObjectURL(_this.src);
+					}
+				}
+				else {
+					tag.src = loader.getItem().src;
 				}
 			} else {
 				tag.src = loader.getItem().src;
