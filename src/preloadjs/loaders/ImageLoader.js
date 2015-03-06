@@ -140,21 +140,28 @@ this.createjs = this.createjs || {};
 				if(objURL) {
 					tag.src = objURL;
 					tag.onload = function () {
-						URL.revokeObjectURL(_this.src);
+						URL.revokeObjectURL(this.src);
+						done(this);
 					}
 				}
 				else {
 					tag.src = loader.getItem().src;
+					if (tag.complete) {
+						done(tag);
+					} else {
+						tag.onload = function () {
+							done(this);
+						}
+					}
 				}
 			} else {
 				tag.src = loader.getItem().src;
-			}
-
-			if (tag.complete) {
-				done(tag);
-			} else {
-				tag.onload = function () {
-					done(this);
+				if (tag.complete) {
+					done(tag);
+				} else {
+					tag.onload = function () {
+						done(this);
+					}
 				}
 			}
 		};
