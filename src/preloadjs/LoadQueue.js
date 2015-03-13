@@ -1654,7 +1654,7 @@ this.createjs = this.createjs || {};
 
 		for (var i = 0; i < l; i++) {
 			var item = this._loadedScripts[i];
-			if (item === null) { break; } // This is still loading. Do not process further.
+			if (item === null || item === undefined) { break; } // This is still loading. Do not process further.
 			if (item === true) { continue; } // This has completed, and been processed. Move on.
 
 			var loadItem = this._loadedResults[item.id];
