@@ -70,6 +70,7 @@ this.createjs = this.createjs || {};
 		 * @property canceled
 		 * @type {Boolean}
 		 * @default false
+		 * @readonly
 		 */
 		this.canceled = false;
 
@@ -658,7 +659,7 @@ this.createjs = this.createjs || {};
 	 * @return {Object} The formatted result
 	 * @since 0.6.0
 	 */
-	p.resultFormatter = null; //TODO: Add support for async formatting.
+	p.resultFormatter = null;
 
 	/**
 	 * Handle events from internal requests. By default, loaders will handle, and redispatch the necessary events, but
@@ -696,7 +697,7 @@ this.createjs = this.createjs || {};
 			case "abort":
 			case "timeout":
 				if (!this._isCanceled()) {
-					this.dispatchEvent(event.type);
+					this.dispatchEvent(new createjs.ErrorEvent("PRELOAD_" + event.type.toUpperCase() + "_ERROR"));
 				}
 				break;
 		}

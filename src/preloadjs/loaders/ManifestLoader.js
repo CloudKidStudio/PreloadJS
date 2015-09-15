@@ -41,10 +41,26 @@ this.createjs = this.createjs || {};
 	/**
 	 * A loader for JSON manifests. Items inside the manifest are loaded before the loader completes. To load manifests
 	 * using JSONP, specify a {{#crossLink "LoadItem/callback:property"}}{{/crossLink}} as part of the
-	 * {{#crossLink "LoadItem"}}{{/crossLink}}. Note that the {{#crossLink "JSONLoader"}}{{/crossLink}} and
-	 * {{#crossLink "JSONPLoader"}}{{/crossLink}} are higher priority loaders, so manifests <strong>must</strong>
-	 * set the {{#crossLink "LoadItem"}}{{/crossLink}} {{#crossLink "LoadItem/type:property"}}{{/crossLink}} property
-	 * to {{#crossLink "AbstractLoader/MANIFEST:property"}}{{/crossLink}}.
+	 * {{#crossLink "LoadItem"}}{{/crossLink}}.
+	 *
+	 * The list of files in the manifest must be defined on the top-level JSON object in a `manifest` property. This
+	 * example shows a sample manifest definition, as well as how to to include a sub-manifest.
+	 *
+	 * 		{
+	 * 			"path": "assets/",
+	 *	 	    "manifest": [
+	 *				"image.png",
+	 *				{"src": "image2.png", "id":"image2"},
+	 *				{"src": "sub-manifest.json", "type":"manifest", "callback":"jsonCallback"}
+	 *	 	    ]
+	 *	 	}
+	 *
+	 * When a ManifestLoader has completed loading, the parent loader (usually a {{#crossLink "LoadQueue"}}{{/crossLink}},
+	 * but could also be another ManifestLoader) will inherit all the loaded items, so you can access them directly.
+	 *
+	 * Note that the {{#crossLink "JSONLoader"}}{{/crossLink}} and {{#crossLink "JSONPLoader"}}{{/crossLink}} are
+	 * higher priority loaders, so manifests <strong>must</strong> set the {{#crossLink "LoadItem"}}{{/crossLink}}
+	 * {{#crossLink "LoadItem/type:property"}}{{/crossLink}} property to {{#crossLink "AbstractLoader/MANIFEST:property"}}{{/crossLink}}.
 	 * @class ManifestLoader
 	 * @param {LoadItem|Object} loadItem
 	 * @extends AbstractLoader
@@ -53,7 +69,19 @@ this.createjs = this.createjs || {};
 	function ManifestLoader(loadItem) {
 		this.AbstractLoader_constructor(loadItem, null, createjs.AbstractLoader.MANIFEST);
 
-		// protected properties
+	// Public Properties
+		/**
+		 * An array of the plugins registered using {{#crossLink "LoadQueue/installPlugin"}}{{/crossLink}},
+		 * used to pass plugins to new LoadQueues that may be created.
+		 * @property _plugins
+		 * @type {Array}
+		 * @private
+		 * @since 0.6.1
+		 */
+		this.plugins = null;
+
+
+	// Protected Properties
 		/**
 		 * An internal {{#crossLink "LoadQueue"}}{{/crossLink}} that loads the contents of the manifest.
 		 * @property _manifestQueue
@@ -141,6 +169,9 @@ this.createjs = this.createjs || {};
 			queue.on("progress", this._handleManifestProgress, this);
 			queue.on("complete", this._handleManifestComplete, this, true);
 			queue.on("error", this._handleManifestError, this, true);
+			for(var i = 0, l = this.plugins.length; i < l; i++) {	// conserve order of plugins
+				queue.installPlugin(this.plugins[i]);
+			}
 			queue.loadManifest(json);
 		} else {
 			this._sendComplete();

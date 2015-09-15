@@ -1,7 +1,7 @@
 describe("PreloadJS.LoadQueue", function () {
 
 	beforeEach(function () {
-		jasmine.DEFAULT_TIMEOUT_INTERVAL = 1000;
+		jasmine.DEFAULT_TIMEOUT_INTERVAL = 2000;
 
 		this.queue = new createjs.LoadQueue();
 
@@ -21,28 +21,44 @@ describe("PreloadJS.LoadQueue", function () {
 	});
 
 	describe("Tag Loading", function () {
-		beforeEach(function() {
+		beforeEach(function () {
 			this.queue.setPreferXHR(false);
 			jasmine.DEFAULT_TIMEOUT_INTERVAL = 9000;
 		});
 
 		it("should load JSONp", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof Object).toBe(true);
+				expect(evt.result).toEqual(jasmine.any(Object));
 				done();
 			});
 			this.loadFile({
-							  src: "static/jsonpSample.json",
-							  callback: "x",
-							  type: createjs.LoadQueue.JSONP
-						  }, false);
+				src: "static/jsonpSample.json",
+				callback: "x",
+				type: createjs.LoadQueue.JSONP
+			}, false);
 		});
 
 		it("should load and execute Javascript (tag)", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
 				expect(window.foo).toBe(true);
+				
+				delete window.foo;
 				done();
 			});
+			this.loadFile("static/scriptExample.js", false);
+		});
+				
+		it("should load and execute Javascript (tag) when maintainScriptOrder is false", function (done) {
+		
+			this.queue.addEventListener("fileload", function (evt) {
+				expect(window.foo).toBe(true);
+				
+				delete window.foo;
+				done();
+			});
+			
+			this.queue.maintainScriptOrder = false;
+			
 			this.loadFile("static/scriptExample.js", false);
 		});
 
@@ -56,31 +72,31 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load sounds", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLMediaElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLMediaElement));
 				done();
 			});
 
 			this.loadFile({
-							  src: "audio/Thunder.mp3",
-							  type: createjs.AbstractLoader.SOUND
-						  });
+				src: "audio/Thunder.mp3",
+				type: createjs.AbstractLoader.SOUND
+			});
 		});
 
 		it("should load video", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLMediaElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLMediaElement));
 				done();
 			});
 
 			this.loadFile({
-							  src: "static/video.mp4",
-							  type: createjs.AbstractLoader.VIDEO
-						  }, false);
+				src: "static/video.mp4",
+				type: createjs.AbstractLoader.VIDEO
+			}, false);
 		});
 
 		it("should load an existing video tag", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result == tag).toBe(true);
+				expect(evt.result).toEqual(tag);
 				done();
 			});
 
@@ -92,7 +108,7 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load an existing sound tag", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result == tag).toBe(true);
+				expect(evt.result).toEqual(tag);
 				done();
 			});
 
@@ -103,23 +119,32 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("tag sound loading send progress events.", function (done) {
 			var _this = this;
-			var callback = function (evt) {
-				expect(true).toBe(true);
-				sound.removeEventListener("progress", callback);
+
+            var func = {
+                progress: function () { }
+            };
+            spyOn(func, 'progress');
+
+            var completeCallback = function (evt) {
+                expect(func.progress).toHaveBeenCalled();
+				sound.removeEventListener("progress", func.progress);
 				done();
 			};
 
 			var sound = new createjs.SoundLoader({
-													 src: "audio/Thunder.mp3",
-													 type: createjs.LoadQueue.SOUND
-												 });
-			sound.addEventListener("progress", callback);
+				src: "audio/Thunder.mp3",
+				type: createjs.LoadQueue.SOUND
+			});
+
+			sound.addEventListener("progress", func.progress);
+            sound.addEventListener("complete", completeCallback);
+
 			sound.load();
 		});
 
 		it("should load images (tag)", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLImageElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLImageElement));
 				done();
 			});
 			this.loadFile("art/image0.jpg", false);
@@ -127,7 +152,7 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load an existing image tag", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result === tag).toBe(true);
+				expect(evt.result).toEqual(tag);
 				done();
 			});
 
@@ -142,17 +167,17 @@ describe("PreloadJS.LoadQueue", function () {
 				done();
 			});
 			this.loadFile({
-							  src: "static/no_jsonp_here.json",
-							  callback: "x",
-							  type: createjs.LoadQueue.JSONP
-						  }, false);
+				src: "static/no_jsonp_here.json",
+				callback: "x",
+				type: createjs.LoadQueue.JSONP
+			}, false);
 		});
 	});
 
 	describe("XHR Loading", function () {
 		it("should load XML", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof Document).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(Document));
 				done();
 			});
 			this.loadFile("static/grant.xml");
@@ -160,7 +185,7 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load JSON", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof Object).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(Object));
 				done();
 			});
 			this.loadFile("static/grant.json");
@@ -169,14 +194,29 @@ describe("PreloadJS.LoadQueue", function () {
 		it("should load and execute Javascript (xhr)", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
 				expect(window.foo).toBe(true);
+				
+				delete window.foo;
 				done();
 			});
+			this.loadFile("static/scriptExample.js", true);
+		});
+		
+		it("should load and execute Javascript (xhr) when maintainScriptOrder is false", function (done) {
+			this.queue.addEventListener("fileload", function (evt) {
+				expect(window.foo).toBe(true);
+				
+				delete window.foo;
+				done();
+			});
+			
+			this.queue.maintainScriptOrder = false;
+			
 			this.loadFile("static/scriptExample.js", true);
 		});
 
 		it("should load css", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLElement));
 				done();
 			});
 			this.loadFile("static/font.css");
@@ -184,7 +224,7 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load images (xhr)", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLImageElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLImageElement));
 				done();
 			});
 			this.loadFile("art/Autumn.png", true);
@@ -192,13 +232,13 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load binary data", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof ArrayBuffer).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(ArrayBuffer));
 				done();
 			});
 			this.loadFile({
-							  src: "audio/Thunder.mp3",
-							  type: createjs.AbstractLoader.BINARY
-						  });
+				src: "audio/Thunder.mp3",
+				type: createjs.AbstractLoader.BINARY
+			});
 		});
 
 		it("should load svg (xhr)", function (done) {
@@ -219,14 +259,14 @@ describe("PreloadJS.LoadQueue", function () {
 
 		it("should load sounds (xhr)", function (done) {
 			this.queue.addEventListener("fileload", function (evt) {
-				expect(evt.result instanceof HTMLMediaElement).toBe(true);
+                expect(evt.result).toEqual(jasmine.any(HTMLMediaElement));
 				done();
 			});
 
 			this.loadFile({
-							  src: "audio/Thunder.mp3",
-							  type: createjs.AbstractLoader.SOUND
-						  }, true);
+				src: "audio/Thunder.mp3",
+				type: createjs.AbstractLoader.SOUND
+			}, true);
 		});
 	});
 
@@ -244,41 +284,79 @@ describe("PreloadJS.LoadQueue", function () {
 			done();
 		});
 
-		//this.queue.preferXHR = false;
-		this.queue._crossOrigin = true;
-		this.queue.loadFile({src:"http://dev.gskinner.com/createjs/cors/daisy.png", crossOrigin:true});
+		this.queue.loadFile({
+			src: "http://dev.gskinner.com/createjs/cors/daisy.png",
+			crossOrigin: true
+		});
 	});
 
-	xit("should load a manifest and its children", function (done) {
-		var fileCount = 0;
+	it("should load a manifest and its children", function (done) {
+		var func = {
+			fileload: function () {
+			}
+		};
 
-		this.queue.addEventListener("fileload", function (evt) {
-			fileCount++;
-		});
+		spyOn(func, "fileload");
+
+		this.queue.addEventListener("fileload", func.fileload);
 
 		this.queue.addEventListener("complete", function (evt) {
-			expect(fileCount).toBe(10);
+			expect(func.fileload.calls.count()).toBe(5);
 			done();
 		});
 		this.loadFile({
-						  src: "static/ManifestTest.json",
-						  callback: "maps",
-						  type: createjs.LoadQueue.MANIFEST
-					  });
+			src: "static/manifest.json",
+			type: createjs.LoadQueue.MANIFEST
+		});
 	});
+
+    it("a SpriteSheetLoader should load a SpriteSheet uinsg JSON", function(done) {
+        var _this = this;
+        this.queue.addEventListener("complete", function (evt) {
+            expect(_this.queue.getResult("foo")).toEqual(jasmine.any(createjs.SpriteSheet));
+            done();
+        });
+        this.loadFile({
+            id:"foo",
+            src: "static/grant.json",
+            type: createjs.AbstractLoader.SPRITESHEET
+        });
+    });
+
+    it("a SpriteSheetLoader should load a SpriteSheet using JSONp", function(done) {
+        var _this = this;
+        this.queue.addEventListener("complete", function (evt) {
+            expect(_this.queue.getResult("foo")).toEqual(jasmine.any(createjs.SpriteSheet));
+            done();
+        });
+        this.loadFile({
+            id:"foo",
+            src: "static/grantp.json",
+            callback:"grantp",
+            type: createjs.AbstractLoader.SPRITESHEET
+        });
+    });
 
 	it("should send progress events.", function (done) {
 		var _this = this;
-		var callback = function (evt) {
-			expect(true).toBe(true);
-			_this.queue.removeEventListener("progress", callback);
+
+        var func = {
+            progress: function () { }
+        };
+        spyOn(func, 'progress');
+
+		var completeCallback = function (evt) {
+            expect(func.progress).toHaveBeenCalled();
+			_this.queue.removeEventListener("progress", func.progress);
 			done();
 		};
-		this.queue.addEventListener("progress", callback);
+		this.queue.addEventListener("progress", func.progress);
+        this.queue.addEventListener("complete", completeCallback);
+
 		this.loadFile({
-						  src: "audio/Thunder.mp3",
-						  type: createjs.LoadQueue.SOUND
-					  });
+			src: "audio/Thunder.mp3",
+			type: createjs.LoadQueue.SOUND
+		});
 	});
 
 	it("XHR should error on a 404", function (done) {
@@ -295,10 +373,10 @@ describe("PreloadJS.LoadQueue", function () {
 			done();
 		});
 		this.loadFile({
-						  src: "art/gbot.svg",
-						  type: createjs.LoadQueue.TEXT,
-						  data: "foo"
-					  });
+			src: "art/gbot.svg",
+			type: createjs.LoadQueue.TEXT,
+			data: "foo"
+		});
 	});
 
 	it("should have custom plugins", function (done) {
@@ -317,10 +395,14 @@ describe("PreloadJS.LoadQueue", function () {
 			var options = {};
 
 			// Tell PreloadJS to skip this file
-			if (options.stopDownload) { return false; }
+			if (options.stopDownload) {
+				return false;
+			}
 
 			// Tell PreloadJS to continue normally
-			if (options.doNothing) { return true; }
+			if (options.doNothing) {
+				return true;
+			}
 
 			loadItem.id = "foo";
 			loadItem.data = "foo";
@@ -347,19 +429,20 @@ describe("PreloadJS.LoadQueue", function () {
 
 		// the grunt server will echo back whatever we send it.
 		this.loadFile({
-						  src: "",
-						  method: createjs.LoadQueue.POST,
-						  values: value
-					  });
+			src: "",
+			method: createjs.LoadQueue.POST,
+			values: value
+		});
 	});
 
-	it("destory() should remove all references in a LoadQueue", function () {
-		this.queue.addEventListener("fileload", function (evt) { });
+	it("destroy() should remove all references in a LoadQueue", function () {
+		this.queue.addEventListener("fileload", function (evt) {
+		});
 		this.loadFile({
-						  src: "art/gbot.svg",
-						  type: createjs.LoadQueue.TEXT,
-						  data: "foo"
-					  });
+			src: "art/gbot.svg",
+			type: createjs.LoadQueue.TEXT,
+			data: "foo"
+		});
 
 		this.queue.destroy();
 		expect(this.queue.hasEventListener("fileload")).toBe(false);
@@ -370,6 +453,7 @@ describe("PreloadJS.LoadQueue", function () {
 	it("removeAll() should remove all the items in a LoadQueue", function () {
 		this.queue.loadFile("foo.baz", false);
 		this.queue.loadFile("baz.foo", false);
+		expect(this.queue._numItems).toBe(2);
 
 		this.queue.removeAll();
 
@@ -378,7 +462,25 @@ describe("PreloadJS.LoadQueue", function () {
 		expect(this.queue._numItems).toBe(0);
 	});
 
-	it("remove('foo') should remove foo from the LoadQueue", function (done) {
+	it("remove by src should remove foo from the LoadQueue", function (done) {
+		var _this = this;
+
+		this.queue.addEventListener("complete", function (evt) {
+			expect(_this.queue.getItem("foo")).toBeDefined();
+			_this.queue.remove(_this.getFilePath("art/gbot.svg"));
+			expect(_this.queue.getItem("foo")).not.toBeDefined();
+			done();
+		});
+
+		this.loadFile({
+			src: "art/gbot.svg",
+			id: "foo",
+			type: createjs.LoadQueue.TEXT,
+			data: "foo"
+		});
+	});
+
+	it("remove by id should remove foo from the LoadQueue", function (done) {
 		var _this = this;
 
 		this.queue.addEventListener("complete", function (evt) {
@@ -389,11 +491,34 @@ describe("PreloadJS.LoadQueue", function () {
 		});
 
 		this.loadFile({
-						  src: "art/gbot.svg",
-						  id:"foo",
-						  type: createjs.LoadQueue.TEXT,
-						  data: "foo"
-					  });
+			src: "art/gbot.svg",
+			id: "foo",
+			type: createjs.LoadQueue.TEXT,
+			data: "foo"
+		});
+	});
+
+	it("stopOnError should suppress events", function (done) {
+		var _this = this;
+
+		var func = {
+			complete: function () {
+
+			}
+		};
+
+		spyOn(func, 'complete');
+
+		setTimeout(function () {
+			expect(func.complete).not.toHaveBeenCalled();
+			done();
+		}, 750);
+
+		this.queue.addEventListener("complete", func.complete);
+		this.queue.stopOnError = true;
+		this.queue.setMaxConnections(2);
+		this.queue.loadManifest(['static/manifest.json', "FileWill404.html", "static/grant.xml", "static/grant.json"], true);
+
 	});
 
 });

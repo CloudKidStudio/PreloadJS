@@ -1,6 +1,6 @@
 {
 	"name": "PreloadJS",
-	"version": "0.6.2",
+	"version": "0.6.3",
 	"homepage": "https://github.com/CreateJS/PreloadJS",
 	"authors": [
 		"gskinner",
@@ -20,7 +20,6 @@
 		"_assets",
 		"node_modules",
 		"bower_components",
-		"bower.json",
 		".bower.json",
 		"build",
 		"docs",
