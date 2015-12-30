@@ -389,7 +389,7 @@ this.createjs = this.createjs || {};
 			createjs.SVGLoader,
 			createjs.BinaryLoader,
 			createjs.VideoLoader,
-			createjs.TextLoader,
+			createjs.TextLoader
 		];
 
 		/**
@@ -892,7 +892,7 @@ this.createjs = this.createjs || {};
 	p.remove = function (idsOrUrls) {
 		var args = null;
 
-		if (idsOrUrls && !(idsOrUrls instanceof Array)) {
+		if (idsOrUrls && !Array.isArray(idsOrUrls)) {
 			args = [idsOrUrls];
 		} else if (idsOrUrls) {
 			args = idsOrUrls;
@@ -1126,7 +1126,7 @@ this.createjs = this.createjs || {};
 		var path = null;
 
 		// Array-based list of items
-		if (manifest instanceof Array) {
+		if (Array.isArray(manifest)) {
 			if (manifest.length == 0) {
 				var event = new createjs.ErrorEvent("PRELOAD_MANIFEST_EMPTY");
 				this._sendError(event);
@@ -1378,7 +1378,7 @@ this.createjs = this.createjs || {};
 			} // the the src is an object, type is required to pass off to plugin
 			if (path) {
 				bp = path;
-				var pathMatch = createjs.RequestUtils.parseURI(path);
+				var pathMatch = createjs.URLUtils.parseURI(path);
 				// Also append basePath
 				if (useBasePath != null && !pathMatch.absolute && !pathMatch.relative) {
 					bp = useBasePath + bp;
@@ -1388,7 +1388,7 @@ this.createjs = this.createjs || {};
 			}
 		} else {
 			// Determine Extension, etc.
-			var match = createjs.RequestUtils.parseURI(item.src);
+			var match = createjs.URLUtils.parseURI(item.src);
 			if (match.extension) {
 				item.ext = match.extension;
 			}
@@ -1404,7 +1404,7 @@ this.createjs = this.createjs || {};
 			if (!match.absolute && !match.relative) {
 				if (path) {
 					bp = path;
-					var pathMatch = createjs.RequestUtils.parseURI(path);
+					var pathMatch = createjs.URLUtils.parseURI(path);
 					autoId = path + autoId;
 					// Also append basePath
 					if (useBasePath != null && !pathMatch.absolute && !pathMatch.relative) {
@@ -1443,7 +1443,7 @@ this.createjs = this.createjs || {};
 			}
 
 			// Update the extension in case the type changed:
-			match = createjs.RequestUtils.parseURI(item.src);
+			match = createjs.URLUtils.parseURI(item.src);
 			if (match.extension != null) {
 				item.ext = match.extension;
 			}

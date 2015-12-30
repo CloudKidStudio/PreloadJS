@@ -7,9 +7,9 @@ progress events, and a plugin model to assist with preloading in other libraries
 ## Example
 
 ```javascript
-var preload = new createjs.LoadQueue();
+var preload = new createjs.LoadQueue(false);
 preload.addEventListener("fileload", handleFileComplete);
-preload.loadFile('http://createjs.com/images/404/gBot-confused.jpg');
+preload.loadFile('http://createjs.com/assets/images/png/createjs-badge-dark.png');
 function handleFileComplete(event) {
 	document.body.appendChild(event.result);
 }
@@ -39,4 +39,3 @@ progress and complete events. Check out the [docs](http://createjs.com/Docs/Prel
 * Made a small change to XHRRequest's _checkError() to be more Cordova friendly.
 * Removed version number from built files, versioning is handled by the Git tags & Bower.
 * Added a fallback in ImageLoader._formatResult() to handle iOS6 and other browsers that don't do URL.createObjectURL() properly.
-* Prevent ImageLoader._formatResult() from detrimentally delaying loaded Image availability in Internet Explorer
