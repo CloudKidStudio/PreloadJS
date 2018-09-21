@@ -1,0 +1,26 @@
+{
+  "name": "PreloadJS",
+  "version": "1.0.0",
+  "description": "PreloadJS is a library to make working with asset preloading easier. It provides a consistent API for loading different file types, automatic detection of XHR (XMLHttpRequest) availability with a fallback to tag-base loading, composite progress events, and a plugin model to assist with preloading in other libraries such as [SoundJS](http://www.soundjs.com).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpringRoll/PreloadJS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SpringRoll/PreloadJS/issues"
+  },
+  "homepage": "https://github.com/SpringRoll/PreloadJS#readme"
+}
